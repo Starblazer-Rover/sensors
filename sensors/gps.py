@@ -43,7 +43,7 @@ class GPS:
             except Exception as n: print(n)
             raise e
     
-    def pereodic(self):
+    def periodic(self):
         pointA = self.gpsOne.geo_coords()
         pointB = self.gpsTwo.geo_coords()
         pointC = self.gpsThree.geo_coords()
@@ -141,4 +141,21 @@ class GPS:
         heading = (bearing + 360) % 360
         
         return heading
+
+
+def main():
+    port = serial.Serial('/dev/ttyACM0', baudrate=38400, timeout=1)
+
+    gps = UbloxGps(port)
+
+    try:
+        while True:
+            print(gps.geo_coords().lon)
+    except KeyboardInterrupt:
+        port.close()
+
+
+main()
+
+
         
