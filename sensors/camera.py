@@ -7,10 +7,73 @@ import signal
 import time
 import sys
 
-def timeout_handler(signum, frame):
-	raise TimeoutError()
+import rclpy
+from rclpy.node import Node
 
-def main():
+class CameraPublisher(Node):
+	
+	def __init__(self, video, port):
+		super().__init__(f'camera_{video}')
+
+		signal.signal(signal.SIGALRM, self.timeout_handler)
+
+		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		server_address = ('192.168.1.11', port)
+		print("Starting UDP Server")
+		self.server_socket.bind(server_address)
+
+		self.bridge = CvBridge()
+		self.cap = cv2.VideoCapture(video)
+		if not self.cap.isOpened():
+			print("Could not open video device")
+			sys.exit()
+		else:
+			self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+			self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+			self.cap.set(cv2.CAP_PROP_FPS, 30)
+
+		timer_period = 1/30
+		self.timer = self.create_timer(timer_period, self.timer_callback)
+
+	def timeout_handler(self, signum, frame):
+		raise TimeoutError()
+	
+	def timer_callback(self):
+		signal.alarm(1)
+
+		try:
+			ret, frame = self.cap.read()
+
+			if not ret:
+				print("Cant receive Frame")
+				return
+
+			compressed_data = self.bridge.cv2_to_compressed_imgmsg(frame, 'jpg').data
+
+			image_data = np.asarray(compressed_data, dtype=np.uint8)
+
+			split_data = np.array_split(image_data, 3)
+
+			data, address = self.server_socket.recvfrom(4096)
+
+			self.server_socket.sendto(split_data[0].tobytes(), address)
+			self.server_socket.recvfrom(4096)
+
+			self.server_socket.sendto(split_data[1].tobytes(), address)
+			self.server_socket.recvfrom(4096)
+
+			self.server_socket.sendto(split_data[2].tobytes(), address)
+			self.server_socket.recvfrom(4096)
+			print("Sent")
+
+		except TimeoutError:
+			print("Timeout")
+			signal.alarm(0)
+			time.sleep(0.75)
+			return
+
+
+def main(args=None):
 
 	video = int(sys.argv[1])
 
@@ -22,62 +85,15 @@ def main():
 		print("Usgae: python3 camera.py <video> <port>")
 		sys.exit()
 
-	signal.signal(signal.SIGALRM, timeout_handler)
+	rclpy.init(args=args)
 
-	server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	camera_publisher = CameraPublisher(video, port)
 
-	server_address = ('169.254.167.120', port)
+	try:
+		rclpy.spin(camera_publisher)
+	except KeyboardInterrupt:
+		camera_publisher.cap.release()
+		camera_publisher.destroy_node()
 
-	print("Starting UDP Server")
-
-	server_socket.bind(server_address)
-
-	bridge = CvBridge()
-	  
-	cap = cv2.VideoCapture(video)
-
-	if not cap.isOpened():
-		print("Could not open video device")
-		sys.exit()
-
-	else:
-		cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-		cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-	while True:
-		signal.alarm(1)
-
-		ret, frame = cap.read()
-
-		if not ret:
-			print("Cant receive Frame")
-			continue
-
-		compressed_data = bridge.cv2_to_compressed_imgmsg(frame, 'jpg').data
-
-		image_data = np.asarray(compressed_data, dtype=np.uint8)
-
-		split_data = np.array_split(image_data, 3)
-		try:
-			data, address = server_socket.recvfrom(4096)
-
-			server_socket.sendto(split_data[0].tobytes(), address)
-			server_socket.recvfrom(4096)
-
-			server_socket.sendto(split_data[1].tobytes(), address)
-			server_socket.recvfrom(4096)
-
-			server_socket.sendto(split_data[2].tobytes(), address)
-			server_socket.recvfrom(4096)
-			print("Sent")
-
-		except TimeoutError:
-			print("Timeout")
-			signal.alarm(0)
-			time.sleep(0.75)
-			continue
-		except KeyboardInterrupt:
-			cap.release()
-			sys.exit()
-
-main()
+if __name__ == '__main__':
+	main()
