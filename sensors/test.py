@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
 # SPDX-License-Identifier: MIT
 
@@ -45,3 +46,26 @@ while True:
     print()
 
     time.sleep(1/105)
+=======
+import threading
+import cv2
+
+def capture_video(camera_index):
+    cap = cv2.VideoCapture(camera_index)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print(f"Failed to grab frame from camera {camera_index}")
+            break
+        # Process the frame here
+    cap.release()
+
+# Start threads for each camera
+t1 = threading.Thread(target=capture_video, args=(2,))
+t2 = threading.Thread(target=capture_video, args=(0,))
+t1.start()
+t2.start()
+
+t1.join()
+t2.join()
+>>>>>>> b72d4c0 (update)
