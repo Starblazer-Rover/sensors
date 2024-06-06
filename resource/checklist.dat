@@ -2,10 +2,34 @@
 - JETSON TURNS ON
 - Image client launch file
 - Realsense client launch
-- Realsense Publisher
+- Image publisher
 - Realsense image server
 - Movement camera launch
-- Controller Publisher
+- Controller publisher
 - Movement subscriber
+- Blue LED
 - Arm camera launch
 - Joystick publisher
+- Arm subscriber
+
+AUTONOMOUS
+- Rviz2 Setup
+- TMUX
+- Joint State Publisher
+- Image Client launch file
+- Realsense client launch
+- Depth client launch
+- Realsense publisher
+- Realsense image server
+- Realsense depth server
+- Movement camera launch
+- Controller publisher
+- Movement subscriber
+- Encoders
+- Imu
+- Odometry
+- Transform
+- GPS
+- Target Pose
+- Cost Map
+- Autonomous start
