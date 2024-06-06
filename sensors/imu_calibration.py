@@ -42,6 +42,37 @@ class Mode:
     NDOF_MODE = 0x0C
 
 
+def _write_register_data(register, data):
+    write_buffer = bytearray(1)
+    write_buffer[0] = register & 0xFF
+    write_buffer[1:len(data)+1]=data
+    with sensor.i2c_device as i2c:
+        i2c.write(write_buffer, start=0, end=len(write_buffer))
+
+def _read_registers(register, length):
+    read_buffer = bytearray(23)
+    read_buffer[0] = register & 0xFF
+    with sensor.i2c_device as i2c:
+        i2c.write(read_buffer, start=0, end=1)
+        i2c.readinto(read_buffer, start=0, end=length)
+        return read_buffer[0:length]
+    
+def get_calibration():
+    """Return the sensor's calibration data and return it as an array of
+    22 bytes. Can be saved and then reloaded with the set_calibration function
+    to quickly calibrate from a previously calculated set of calibration data.
+    """
+    # Switch to configuration mode, as mentioned in section 3.10.4 of datasheet.
+    sensor.mode = adafruit_bno055.CONFIG_MODE
+    # Read the 22 bytes of calibration data and convert it to a list (from
+    # a bytearray) so it's more easily serialized should the caller want to
+    # store it.
+    cal_data = list(_read_registers(0X55, 22))
+    # Go back to normal operation mode.
+    mode = adafruit_bno055.NDOF_MODE
+    return cal_data
+
+
 # Uncomment these lines for UART interface connection
 # uart = board.UART()
 # sensor = adafruit_bno055.BNO055_UART(uart)
@@ -50,7 +81,7 @@ class Mode:
 i2c = board.I2C()  # For board.SCL and board.SDA
 #i2c = board.STEMMA_I2C()  # For the built-in STEMMA QT connection
 sensor = adafruit_bno055.BNO055_I2C(i2c)
-sensor.mode = Mode.NDOF_MODE  # Set the sensor to NDOF_MODE
+sensor.mode = Mode.NDOF_MODE
 
 print("Magnetometer: Perform the figure-eight calibration dance.")
 while sensor.calibration_status[3] != 3 or sensor.calibration_status[2] != 3 or sensor.calibration_status[1] != 3:
@@ -82,6 +113,8 @@ while sensor.calibration_status[3] != 3 or sensor.calibration_status[2] != 3 or 
 print("... CALIBRATED")
 time.sleep(1)
 
+print(get_calibration())
+
 print("\nCALIBRATION COMPLETED")
 print("Insert these preset offset values into project code:")
 print(f"  Offsets_Magnetometer:  {sensor.offsets_magnetometer}")
@@ -93,5 +126,4 @@ with open(path, 'w') as file:
     file.write(f'{sensor.offsets_magnetometer[0]}, {sensor.offsets_magnetometer[1]}, {sensor.offsets_magnetometer[2]}\n')
     file.write(f'{sensor.offsets_gyroscope[0]}, {sensor.offsets_gyroscope[1]}, {sensor.offsets_gyroscope[2]}\n')
     file.write(f'{sensor.offsets_accelerometer[0]}, {sensor.offsets_accelerometer[1]}, {sensor.offsets_accelerometer[2]}\n')
-
 

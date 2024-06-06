@@ -11,7 +11,7 @@ class GpsPublisher(Node):
         super().__init__('gps_publisher')
 
         self.publisher = self.create_publisher(Float32MultiArray, '/odom/gps', 10)
-        timer_period = 1/2
+        timer_period = 1/10
 
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
@@ -26,14 +26,49 @@ class GpsPublisher(Node):
         
         print('Serial Port Opened')
 
+    def lat_to_decimal(self, num):
+        decimal = num[0:2]
+
+        minute = float(num[2:]) / 100
+
+        minute /= 60
+
+        minute = str(minute * 100)
+
+        minute = minute[2:8]
+
+        number = decimal + '.' + minute
+
+        return float(number)
+    
+    def long_to_decimal(self, num):
+        decimal = num[0:3]
+
+        minute = float(num[3:]) / 100
+
+        minute /= 60
+
+        minute = str(minute * 100)
+
+        minute = minute[2:8]
+
+        number = decimal + '.' + minute
+
+        return float(number)
+
     def timer_callback(self):
         msg = Float32MultiArray()
 
         serial_data = self.ser.read_until(expected='/r/n').decode().split(',')
 
         try:
-            data = [float(serial_data[1]), float(serial_data[3])]
-            print(f'Longitude: {data[0]}, Latitude: {data[1]}')
+
+            lat = self.lat_to_decimal(serial_data[1])
+            long = self.long_to_decimal(serial_data[3])
+
+            data = [lat, -long]
+
+            print(f'Latitude: {lat}, Longitude: {-long}')
         except (ValueError, IndexError, AssertionError):
             print('Failed')
             return

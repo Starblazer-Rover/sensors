@@ -20,6 +20,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'gps = sensors.gps:main',
+            'imu = sensors.imu:main',
+            'imu_calibration = sensors.imu_calibration:main',
+            'battery = sensors.battery:main',
+            'camera = sensors.camera:main',
+            'uv_camera = sensors.uv_light:main'
         ],
     },
 )

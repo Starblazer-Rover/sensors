@@ -1,71 +1,35 @@
-<<<<<<< HEAD
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
+import math
 
-import time
-import board
-import adafruit_bno055
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371*39370.1 # Earth radius in kilometers
 
+    # Convert latitude and longitude from degrees to radians
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
 
-i2c = board.I2C()  # uses board.SCL and board.SDA
-# i2c = board.STEMMA_I2C()  # For using the built-in STEMMA QT connector on a microcontroller
-sensor = adafruit_bno055.BNO055_I2C(i2c)
+    # Calculate differences
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
 
-# If you are going to use UART uncomment these lines
-# uart = board.UART()
-# sensor = adafruit_bno055.BNO055_UART(uart)
+    # Haversine formula
+    a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    distance = R * c
 
-last_val = 0xFFFF
+    # Calculate bearing
+    angle = math.atan2(math.sin(lon2 - lon1) * math.cos(lat2),
+                       math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(lon2 - lon1))
+    angle = math.degrees(angle)
+    angle = ((angle + 360) % 360) - 90  # Convert bearing to a compass angle
 
+    return distance, angle
 
-def temperature():
-    global last_val  # pylint: disable=global-statement
-    result = sensor.temperature
-    if abs(result - last_val) == 128:
-        result = sensor.temperature
-        if abs(result - last_val) == 128:
-            return 0b00111111 & result
-    last_val = result
-    return result
+# Example coordinates
+lat2, lon2 = 34.64959, -117.881182  # GPS1
+lat1, lon1 = 34.649592, -117.881182  # GPS2
 
-
-while True:
-    print("Temperature: {} degrees C".format(sensor.temperature))
-    """
-    print(
-        "Temperature: {} degrees C".format(temperature())
-    )  # Uncomment if using a Raspberry Pi
-    """
-    print("Accelerometer (m/s^2): {}".format(sensor.acceleration))
-    print("Magnetometer (microteslas): {}".format(sensor.magnetic))
-    print("Gyroscope (rad/sec): {}".format(sensor.gyro))
-    print("Euler angle: {}".format(sensor.euler))
-    print("Quaternion: {}".format(sensor.quaternion))
-    print("Linear acceleration (m/s^2): {}".format(sensor.linear_acceleration))
-    print("Gravity (m/s^2): {}".format(sensor.gravity))
-    print()
-
-    time.sleep(1/105)
-=======
-import threading
-import cv2
-
-def capture_video(camera_index):
-    cap = cv2.VideoCapture(camera_index)
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            print(f"Failed to grab frame from camera {camera_index}")
-            break
-        # Process the frame here
-    cap.release()
-
-# Start threads for each camera
-t1 = threading.Thread(target=capture_video, args=(2,))
-t2 = threading.Thread(target=capture_video, args=(0,))
-t1.start()
-t2.start()
-
-t1.join()
-t2.join()
->>>>>>> b72d4c0 (update)
+distance, angle = haversine(lat1, lon1, lat2, lon2)
+print("Distance:", distance, "inches")
+print("Angle:", angle, "degrees")
