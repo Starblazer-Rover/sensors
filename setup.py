@@ -24,9 +24,6 @@ setup(
             'imu = sensors.imu:main',
             'imu_calibration = sensors.imu_calibration:main',
             'battery = sensors.battery:main',
-            'camera = sensors.camera:main',
-            'uv_camera = sensors.uv_light:main',
-            'uv_picture = sensors.uv_picture:main'
         ],
     },
 )
